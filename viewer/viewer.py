@@ -66,8 +66,12 @@ def apply_overlay_if_needed(image):
 
 def get_screen_resolution():
     """Retourne la résolution de l'écran principal"""
-    monitor = get_monitors()[0]
-    return monitor.width, monitor.height
+    try:
+        monitor = get_monitors()[0]
+        return monitor.width, monitor.height
+    except Exception:
+        print("[WARN] Aucun écran détecté — fallback en 1920x1080")
+        return 1920, 1080
 
 
 def load_media_list():
