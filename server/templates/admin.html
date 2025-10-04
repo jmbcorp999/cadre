@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Réglages - Cadre Photo</title>
+  <script src="https://unpkg.com/vue@3"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: sans-serif;
+      margin: 10px;
+      padding: 0;
+      background: #2b2b2b;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #777777;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    input[type="file"], input[type="range"], label {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 5px;
+    }
+
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      margin-top: 20px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #0d47a1;
+    }
+
+    .back {
+      display: block;
+      text-align: center;
+      margin: 20px auto;
+      color: #ffffff;
+      text-decoration: none;
+    }
+    .encadre {
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #bbdefb;
+    }
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4caf50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 1000;
+      transition: opacity 0.3s;
+    }
+    </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div v-if="uploadProgress > 0" style="margin-top: 15px;">
+        <div style="background: #ccc; border-radius: 5px; overflow: hidden; height: 20px;">
+          <div :style="{ width: uploadProgress + '%'}"
+               style="background: #1976d2; height: 100%; transition: width 0.3s;"></div>
+        </div>
+        <p style="text-align:center; margin-top: 5px;">{{ uploadProgress }} Envoi en cours, merci de patienter dumdum !</p>
+    </div>
+
+    <div class="encadre">
+        <h2>📂 Upload de média</h2>
+        <input type="file" multiple @change="uploadFile"><br>
+    </div>
+
+    <div class="encadre">
+        <h2>⚙️ Paramètres d'affichage</h2>
+        <label><input type="checkbox" v-model="config.show_images"> Afficher les images</label><br>
+        <label><input type="checkbox" v-model="config.show_videos"> Afficher les vidéos</label><br>
+
+        <div style="margin-top: 10px;">
+            <label for="duration">⏱️ Durée d'affichage (secondes) : <strong>{{ '{{ Number(config.image_duration) }}' }}s</strong></label>
+            <input id="duration" type="range" min="1" max="10" v-model="config.image_duration">
+        </div>
+
+        <button @click="saveConfig">💾 Sauvegarder</button>
+    </div>
+
+    <div class="encadre">
+        <h2>📑 Mode d'affichage</h2>
+        <button @click="toggleOrder">
+            {{ '{' }}{ config.display_order === 'alphabetical' ? 'Dans l\'ordre' : 'Ordre aléatoire' }{{ '}' }}
+        </button>
+    </div>
+
+    <div class="encadre">
+        <h2>💡 Réglage luminosité</h2>
+        <button @click="toggleLuminosity">
+            {{ '{' }}{ luminosityEnabled ? "❌ Désactiver la luminosité automatique" : "💡 Activer la luminosité automatique" }{{ '}' }}
+        </button>
+    </div>
+    <div class="encadre">
+      <h2>💡 Réglage mode nuit automatique (22h / 7h)</h2>
+      <button @click="toggleNightMode">
+          {{ '{' }}{ config.night_mode ? "❌ Désactiver le mode nuit automatique" : "💡 Activer le mode nuit automatique" }{{ '}' }}
+      </button>
+      <button @click="toggleBlackScreen">
+        {{ '{' }}{ config.black_screen ? "❌ Désactiver le mode noir total" : "💡 Activer le mode noir total" }{{ '}' }}
+    </button>
+  </div>  
+
+    <a href="/" class="back">⬅️ Retour à l'affichage</a>
+    <div v-if="notification" class="notification" :style="notificationStyle" v-html="notification"></div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          notification: '',
+          notificationStyle: {},
+          luminosityEnabled: false,
+          uploadProgress: 0,
+          config: {
+            show_images: true,
+            show_videos: true,
+            video_sound: true,
+            image_duration: 3,
+            display_order: 'alphabetical',
+            night_mode: false,
+            black_screen: false,
+          }
+        };
+      },
+      methods: {
+        showNotification(msg, type) {
+          const colors = {
+            info: '#4caf50',
+            error: '#f44336',
+          };
+          this.notification = msg;
+          this.notificationStyle = {
+            background: colors[type] || '#4caf50',
+            color: '#fff',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            transition: 'opacity 0.3s'
+          };
+          setTimeout(() => this.notification = '', 3000);
+        },
+        toggleOrder() {
+          this.config.display_order = this.config.display_order === 'alphabetical' ? 'random' : 'alphabetical';
+          fetch('/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.config)
+          }).then(() => {
+            this.showNotification('✅ Mode d\'affichage mis à jour ! Effet au prochain média.', 'info');
+          });
+        },
+        toggleLuminosity() {
+            this.luminosityEnabled = !this.luminosityEnabled;
+            fetch('/luminosity/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: this.luminosityEnabled })
+            }).then(() => {
+                this.showNotification(this.luminosityEnabled ? '💡 Luminosité automatique activée !' : '❌ Luminosité automatique désactivée !', 'info');
+            });
+        },
+        toggleNightMode() {
+            this.config.night_mode = !this.config.night_mode;
+            fetch('/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.config)
+            }).then(() => {
+                this.showNotification(this.config.night_mode ? '💡 Mode nuit automatique activé !' : '❌ Mode nuit automatique désactivé !', 'info');
+            });
+        },
+        toggleBlackScreen() {
+            this.config.black_screen = !this.config.black_screen;
+            fetch('/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.config)
+            }).then(() => {
+                this.showNotification(this.config.black_screen ? '💡 Mode noir total activé !' : '❌ Mode noir total désactivé !', 'info');
+            });
+        },
+        fetchLuminosityStatus() {
+            fetch('/luminosity/status')
+                .then(res => res.json())
+                .then(data => {
+                this.luminosityEnabled = data.enabled;
+                });
+            },
+        fetchConfig() {
+          fetch('/config')
+            .then(res => res.json())
+            .then(data => Object.assign(this.config, data))
+        },
+        saveConfig() {
+          fetch('/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.config)
+          }).then(() => {
+            this.showNotification('✅ Réglages sauvegardés ! Effet au prochain média.', 'info');
+          });
+        },
+        uploadFile(e) {
+            const files = e.target.files;
+            if (!files.length) {
+                this.showNotification('❌ Aucun fichier sélectionné !', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append('file', file);
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                this.uploadProgress = Math.round((e.loaded / e.total) * 100);
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 204) {
+                this.uploadProgress = 0;
+                this.showNotification('✅ Fichiers uploadés avec succès !', 'info');
+                this.fetchConfig();
+                } else {
+                this.showNotification('❌ Erreur lors de l\'upload des fichiers !', 'error');
+                }
+                e.target.value = null;
+            };
+
+            xhr.send(formData);
+            }
+      },
+      mounted() {
+        this.fetchLuminosityStatus();
+        this.fetchConfig();
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

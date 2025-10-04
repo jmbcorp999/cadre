@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Cadre Photo</title>
+  <script src="https://unpkg.com/vue@3"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: sans-serif;
+      margin: 10px;
+      padding: 0;
+      background: #2b2b2b;
+    }
+  
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+  
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 16px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+  
+    button:hover {
+      background: #0d47a1;
+    }
+  
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+  
+    input[type="file"], input[type="range"] {
+      width: 100%;
+      margin-top: 6px;
+    }
+  
+    @media (min-width: 600px) {
+      .file-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+      }
+    }
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 colonnes par défaut */
+      gap: 5px;
+    }
+
+    .file-item img,
+    .file-item video {
+      height: 140px;
+      width: 100%;
+      object-fit: cover;
+      object-position: center;
+      border-radius: 5px;
+      margin-top: 8px;
+      background: #ccc;
+    }
+    .file-item span {
+      font-size: 14px;
+      word-break: break-word;
+      text-align: center;
+    }
+    .file-item button {
+      margin-top: 5px;
+      align-self: center;
+    }
+    .settings-button {
+      text-decoration: none;
+      position: fixed;
+      top: 10px;
+      right: 5px;
+      background: #050899;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 36px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .settings-button:hover {
+      background: #0d47a1;
+    }
+
+  </style>
+  
+</head>
+<body>
+  <div id="app">
+    <div style="text-align:center; margin: 20px 0;">
+      <button @click="currentPage--" :disabled="currentPage === 1">⬅️ Précédent</button>
+      <span> - </span>
+      <button @click="currentPage++" :disabled="currentPage === pageCount">Suivant ➡️</button>
+    </div>
+    <div class="file-grid">
+      <div v-for="file in paginatedFiles" :key="file" class="file-item">
+        <span>{{ file }}</span>
+        <img v-if="file.match(/\.(jpe?g|png)$/i)" :src="'/media/' + file">
+        <video v-else-if="file.match(/\.(mp4|avi|mov)$/i)" controls :src="'/media/' + file"></video>
+        <div style="display: flex; justify-content: center; gap: 8px;">
+          <button @click="archiveFile(file)" title="Archiver" style="background: #ff9800;">📦</button>
+          <button @click="deleteFile(file)" title="Supprimer" style="background: #d32f2f;">🗑️</button>
+        </div>
+      </div>
+    </div>
+    <a href="/admin" class="settings-button" title="Réglages">⚙️</a>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          files: [],
+          currentPage: 1,
+          itemsPerPage: 9,
+        };
+      },
+      methods: {
+        fetchMedia() {
+          fetch('/media')
+            .then(res => res.json())
+            .then(data => {
+              this.files = data;
+              this.files.reverse();
+            });
+        },
+        deleteFile(name) {
+          confirm(`Êtes-vous sûr de vouloir supprimer ${name} ?`) &&
+          fetch('/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: name })
+          }).then(() => this.fetchMedia());
+        },
+        archiveFile(name) {
+          fetch('/archive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: name })
+          }).then(() => this.fetchMedia());
+        },
+      },
+      mounted() {
+        this.fetchMedia();
+      },
+      computed: {
+        paginatedFiles() {
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          return this.files.slice(start, start + this.itemsPerPage);
+        },
+        pageCount() {
+          return Math.ceil(this.files.length / this.itemsPerPage);
+        }
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "show_images": true,
+  "show_videos": true,
+  "video_sound": true,
+  "image_duration": "5",
+  "display_order": "random",
+  "apply_auto_night_mode": true,
+  "night_mode": true,
+  "black_screen": false
+}
